@@ -1,0 +1,44 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Users collection rules
+    match /users/{userId} {
+      allow read: if isSignedIn() && isOwner(userId);
+      // Allow creation if the document ID matches the authenticated user's ID
+      allow create: if request.auth != null && userId == request.auth.uid;
+      allow update: if isSignedIn() && isOwner(userId);
+      allow delete: if false; // Prevent deletion
+    }
+
+    // Customers collection rules
+    match /customers/{customerId} {
+      allow read: if isSignedIn() && isOwner(resource.data.userId);
+      allow create: if isSignedIn() && isOwner(request.resource.data.userId);
+      allow update: if isSignedIn() && isOwner(resource.data.userId);
+      allow delete: if false; // Prevent deletion
+    }
+
+    // Subscriptions collection rules
+    match /subscriptions/{subscriptionId} {
+      allow read: if isSignedIn() && isOwner(resource.data.userId);
+      allow create: if isSignedIn() && isOwner(request.resource.data.userId);
+      allow update: if isSignedIn() && isOwner(resource.data.userId);
+      allow delete: if false; // Prevent deletion
+    }
+
+    // Prices collection rules
+    match /prices/{priceId} {
+      allow read: if true; // Public read access
+      allow write: if false; // Only admin can write via backend
+    }
+  }
+} 
